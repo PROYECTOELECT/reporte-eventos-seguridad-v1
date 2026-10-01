@@ -279,17 +279,18 @@ function MapaReportes({ reportes, ubicacionSeleccionada, onSeleccionarUbicacion,
           })}
         >
           <Popup>
-            <div style={{ textAlign: 'center', minWidth: 120 }}>
+            <div style={{ textAlign: 'center', minWidth: 170 }}>
+              {u.foto ? <img src={u.foto} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 6px', display: 'block' }} /> : null}
               <strong>{u.nombre || 'Usuario'}</strong>
-              {u.cargo && <div><small>{u.cargo}</small></div>}
-              <div><small>GPS en vivo</small></div>
+              {u.cargo ? <div><small>{u.cargo}</small></div> : null}
+              <div style={{ marginTop: 6 }}><small><b>Última conexión</b></small></div>
               <div><small>
-                Último uso:{' '}
                 {u.ultimaActividad
-                  ? new Date(u.ultimaActividad).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
+                  ? new Date(u.ultimaActividad).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
                   : 'Sin registro'}
               </small></div>
-              <div><small>{Number(u.lat).toFixed(5)}, {Number(u.lng).toFixed(5)}</small></div>
+              <div style={{ marginTop: 4 }}><small><b>Ubicación</b></small></div>
+              <div><small>{Number(u.lat).toFixed(6)}, {Number(u.lng).toFixed(6)}</small></div>
             </div>
           </Popup>
         </Marker>

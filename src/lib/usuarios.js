@@ -808,12 +808,15 @@ export function guardarPosicionUsuario(id, lat, lng) {
 
 export function posicionViva(user) {
   if (!user) return { lat: null, lng: null }
+  const lat = user.ultimaLat ?? user.ultima_lat ?? null
+  const lng = user.ultimaLng ?? user.ultima_lng ?? null
+  if (lat != null && lng != null) return { lat: Number(lat), lng: Number(lng) }
   try {
     const vivo = JSON.parse(localStorage.getItem('gps_live_v1') || '{}')
     const p = vivo[String(user.id)]
-    if (p && Date.now() - (p.t || 0) < 15 * 60 * 1000) {
+    if (p && Date.now() - (p.t || 0) < 30 * 60 * 1000) {
       return { lat: p.lat, lng: p.lng }
     }
   } catch (_) {}
-  return { lat: user.ultimaLat ?? user.ultima_lat ?? null, lng: user.ultimaLng ?? user.ultima_lng ?? null }
+  return { lat: null, lng: null }
 }

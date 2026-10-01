@@ -226,7 +226,7 @@ function App() {
       if (sesion?.id) {
         actualizarUltimaActividad(sesion.id)
         const ahora = Date.now()
-        if (ahora - ultimoEnvio > 4000) {
+        if (ahora - ultimoEnvio > 2000) {
           ultimoEnvio = ahora
           guardarPosicionUsuario(sesion.id, lat, lng)
         }
@@ -247,10 +247,20 @@ function App() {
 
   useEffect(() => {
     if (!sesion) return
+    sincronizarPosicionesNube().then(() => setTickUsuarios(n => n + 1)).catch(() => {})
     const id = setInterval(() => {
       sincronizarPosicionesNube().then(() => setTickUsuarios(n => n + 1)).catch(() => {})
-    }, 25000)
-    return () => clearInterval(id)
+    }, 5000)
+    const canal = supabase
+      .channel('gps-usuarios')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios_app' }, () => {
+        sincronizarPosicionesNube().then(() => setTickUsuarios(n => n + 1)).catch(() => {})
+      })
+      .subscribe()
+    return () => {
+      clearInterval(id)
+      supabase.removeChannel(canal)
+    }
   }, [sesion?.id])
 
   const cargarReportes = async () => {
