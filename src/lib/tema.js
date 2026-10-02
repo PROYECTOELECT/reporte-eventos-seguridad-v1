@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 const TEMA_KEY = 'tema_plataforma_v1'
 
 export const TEMA_DEFAULT = {
@@ -96,7 +98,48 @@ export function guardarTema(tema) {
   const t = { ...TEMA_DEFAULT, ...tema }
   localStorage.setItem(TEMA_KEY, JSON.stringify(t))
   aplicarTema(t)
+  subirTemaNube(t)
   return t
+}
+
+export async function sincronizarTemaNube() {
+  try {
+    const { data, error } = await supabase.from('tema_app').select('*').eq('id', 'global').maybeSingle()
+    if (error || !data) return cargarTema()
+    const remoto = {
+      preset: data.preset || TEMA_DEFAULT.preset,
+      fondo: data.fondo || TEMA_DEFAULT.fondo,
+      banner: data.banner || TEMA_DEFAULT.banner,
+      boton: data.boton || TEMA_DEFAULT.boton,
+      botonTexto: data.boton_texto || TEMA_DEFAULT.botonTexto,
+      acento: data.acento || TEMA_DEFAULT.acento,
+      estilo: data.estilo || TEMA_DEFAULT.estilo,
+      fondoImagen: data.fondo_imagen || null
+    }
+    localStorage.setItem(TEMA_KEY, JSON.stringify(remoto))
+    aplicarTema(remoto)
+    return remoto
+  } catch {
+    return cargarTema()
+  }
+}
+
+function subirTemaNube(t) {
+  const fila = {
+    id: 'global',
+    preset: t.preset,
+    fondo: t.fondo,
+    banner: t.banner,
+    boton: t.boton,
+    boton_texto: t.botonTexto,
+    acento: t.acento,
+    estilo: t.estilo,
+    fondo_imagen: t.fondoImagen && String(t.fondoImagen).length < 400000 ? t.fondoImagen : null,
+    updated_at: new Date().toISOString()
+  }
+  supabase.from('tema_app').upsert(fila).then(({ error }) => {
+    if (error) console.warn('tema nube:', error.message)
+  })
 }
 
 export function aplicarPreset(id) {

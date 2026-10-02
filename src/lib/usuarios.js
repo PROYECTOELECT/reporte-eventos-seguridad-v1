@@ -554,13 +554,17 @@ export function contactosBuzon(sesion) {
       const r = rolDe(u)
       if (r === ROL_ADMIN) return true
       if (r === ROL_GENERAL && String(u.masterId) === String(sesion.id)) return true
+      if (r === ROL_GENERAL && (u.masterNombre || '').trim().toLowerCase() === (sesion.nombre || '').trim().toLowerCase()) return true
       return false
     })
   }
   const mid = sesion.masterId
+  const mn = (sesion.masterNombre || '').trim().toLowerCase()
   return todos.filter((u) => {
-    if (String(u.id) === String(mid)) return true
-    if (rolDe(u) === ROL_GENERAL && String(u.masterId) === String(mid)) return true
+    if (mid && String(u.id) === String(mid)) return true
+    if (mn && rolDe(u) === ROL_MASTER && (u.nombre || '').trim().toLowerCase() === mn) return true
+    if (rolDe(u) === ROL_GENERAL && mid && String(u.masterId) === String(mid)) return true
+    if (rolDe(u) === ROL_GENERAL && mn && (u.masterNombre || '').trim().toLowerCase() === mn) return true
     return false
   })
 }

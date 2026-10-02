@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { listarUsuarios, contactosBuzon } from '../lib/usuarios'
+import { listarUsuarios, contactosBuzon, sincronizarUsuariosNube } from '../lib/usuarios'
 import {
   enviarMensaje,
   conversacion,
@@ -39,8 +39,19 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
   }
 
   useEffect(() => {
-    if (abierto) sincronizarMensajesNube().then(() => setTick(t => t + 1))
-  }, [abierto])
+    if (!abierto) return
+    let vivo = true
+    const pull = async () => {
+      await sincronizarUsuariosNube().catch(() => {})
+      await sincronizarMensajesNube().catch(() => {})
+      if (!vivo) return
+      setUsuarios(contactosBuzon(sesion))
+      setTick(t => t + 1)
+    }
+    pull()
+    const id = setInterval(pull, 4000)
+    return () => { vivo = false; clearInterval(id) }
+  }, [abierto, sesion?.id])
 
   useEffect(() => {
     if (!abierto) return

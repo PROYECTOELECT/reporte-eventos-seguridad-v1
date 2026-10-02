@@ -20,6 +20,7 @@ import { generarInformeGeneral } from './utils/generarInformeGeneral'
 import { exportarExcel } from './utils/exportarExcel'
 import PanelInformeSemanal from './components/PanelInformeSemanal'
 import { supabase } from './lib/supabase'
+import { sincronizarTemaNube } from './lib/tema'
 import { sesionActual, logout, refrescarSesionDesdeStorage, listarUsuarios, actualizarUltimaActividad, tocarSesion, actualizarUsuario, rolDe, sincronizarUsuariosNube, sincronizarPosicionesNube, permisosDe, guardarPosicionUsuario, posicionViva } from './lib/usuarios'
 import { reporteVisiblePara, enriquecerReporte, reporteEsDeUsuario } from './lib/vinculosReportes'
 import { noLeidos } from './lib/mensajes'
@@ -250,6 +251,7 @@ function App() {
     sincronizarPosicionesNube().then(() => setTickUsuarios(n => n + 1)).catch(() => {})
     const id = setInterval(() => {
       sincronizarPosicionesNube().then(() => setTickUsuarios(n => n + 1)).catch(() => {})
+      sincronizarTemaNube().catch(() => {})
     }, 5000)
     const canal = supabase
       .channel('gps-usuarios')
