@@ -70,6 +70,29 @@ function PanelTemaAdmin() {
               Restaurar
             </button>
           </div>
+          <div className="foto-opciones" style={{ marginTop: 10 }}>
+            <label className="btn btn-secondary foto-btn">
+              Cambiar icono de la app
+              <input type="file" accept="image/*" hidden onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                if (file.size > 800000) { setError('El icono no debe superar 800 KB'); return }
+                const reader = new FileReader()
+                reader.onload = (ev) => {
+                  const next = guardarTema({ ...cargarTema(), icono: ev.target.result })
+                  setTema(next)
+                  setError('')
+                }
+                reader.readAsDataURL(file)
+              }} />
+            </label>
+            {tema.icono && (
+              <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => setTema(guardarTema({ ...cargarTema(), icono: null }))}>
+                Icono por defecto
+              </button>
+            )}
+            <img src={tema.icono || '/icon-192.png'} alt="Icono" style={{ width: 42, height: 42, borderRadius: 10 }} />
+          </div>
           {error && <span className="master-error">{error}</span>}
         </div>
       )}

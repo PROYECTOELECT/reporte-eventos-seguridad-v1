@@ -10,6 +10,7 @@ export const TEMA_DEFAULT = {
   botonTexto: '#ffffff',
   acento: '#22d3ee',
   fondoImagen: null,
+  icono: null,
   estilo: 'solido'
 }
 
@@ -114,7 +115,8 @@ export async function sincronizarTemaNube() {
       botonTexto: data.boton_texto || TEMA_DEFAULT.botonTexto,
       acento: data.acento || TEMA_DEFAULT.acento,
       estilo: data.estilo || TEMA_DEFAULT.estilo,
-      fondoImagen: data.fondo_imagen || null
+      fondoImagen: data.fondo_imagen || null,
+      icono: data.icono || null
     }
     localStorage.setItem(TEMA_KEY, JSON.stringify(remoto))
     aplicarTema(remoto)
@@ -135,6 +137,7 @@ function subirTemaNube(t) {
     acento: t.acento,
     estilo: t.estilo,
     fondo_imagen: t.fondoImagen && String(t.fondoImagen).length < 400000 ? t.fondoImagen : null,
+    icono: t.icono && String(t.icono).length < 400000 ? t.icono : null,
     updated_at: new Date().toISOString()
   }
   supabase.from('tema_app').upsert(fila).then(({ error }) => {
@@ -180,6 +183,27 @@ export function aplicarTema(tema) {
     document.body.style.backgroundAttachment = ''
     document.body.style.backgroundPosition = ''
   }
+  aplicarIcono(t.icono)
+}
+
+export function aplicarIcono(src) {
+  const href = src || '/icon-192.png'
+  let link = document.querySelector("link[rel='icon']")
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'icon'
+    document.head.appendChild(link)
+  }
+  link.href = href
+  let apple = document.querySelector("link[rel='apple-touch-icon']")
+  if (!apple) {
+    apple = document.createElement('link')
+    apple.rel = 'apple-touch-icon'
+    document.head.appendChild(apple)
+  }
+  apple.href = href
+  const meta = document.querySelector("meta[name='theme-color']")
+  if (meta) meta.setAttribute('content', '#0f2a24')
 }
 
 export function resetTema() {

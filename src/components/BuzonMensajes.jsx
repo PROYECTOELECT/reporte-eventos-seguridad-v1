@@ -155,7 +155,7 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
     URL.revokeObjectURL(url)
   }
 
-  const handleEnviar = (e) => {
+  const handleEnviar = async (e) => {
     e.preventDefault()
     setError('')
     if (!destinatarioId) {
@@ -167,18 +167,21 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
       return
     }
     const dest = listarUsuarios().find(u => u.id === destinatarioId)
-    enviarMensaje({
-      fromId: sesion.id,
-      fromNombre: sesion.nombre,
-      toId: destinatarioId,
-      toNombre: dest?.nombre || destinatario?.nombre || '',
-      texto
-    })
-    // Al responder se marcan leídos los mensajes recibidos de esa persona
-    marcarLeidos(sesion.id, destinatarioId)
-    setTexto('')
-    setTick(t => t + 1)
-    if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+    try {
+      await enviarMensaje({
+        fromId: sesion.id,
+        fromNombre: sesion.nombre,
+        toId: destinatarioId,
+        toNombre: dest?.nombre || destinatario?.nombre || '',
+        texto
+      })
+      marcarLeidos(sesion.id, destinatarioId)
+      setTexto('')
+      setTick(t => t + 1)
+      if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+    } catch (err) {
+      setError(err.message || 'No se pudo enviar')
+    }
   }
 
   return (

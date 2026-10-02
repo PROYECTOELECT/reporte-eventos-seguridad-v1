@@ -23,7 +23,7 @@ import { supabase } from './lib/supabase'
 import { sincronizarTemaNube } from './lib/tema'
 import { sesionActual, logout, refrescarSesionDesdeStorage, listarUsuarios, actualizarUltimaActividad, tocarSesion, actualizarUsuario, rolDe, sincronizarUsuariosNube, sincronizarPosicionesNube, permisosDe, guardarPosicionUsuario, posicionViva } from './lib/usuarios'
 import { reporteVisiblePara, enriquecerReporte, reporteEsDeUsuario } from './lib/vinculosReportes'
-import { noLeidos } from './lib/mensajes'
+import { noLeidos, sincronizarMensajesNube } from './lib/mensajes'
 
 const TITLE_KEY = 'titulo_informe_v1'
 const LOGO_KEY = 'logo_marca_v1'
@@ -191,7 +191,7 @@ function App() {
   useEffect(() => {
     if (!sesion) return
     const refreshBadges = () => {
-      setMsgBadge(noLeidos(sesion.id))
+      sincronizarMensajesNube().then(() => setMsgBadge(noLeidos(sesion.id))).catch(() => setMsgBadge(noLeidos(sesion.id)))
       if (sesion.esMaster || sesion.esAdmin || sesion.rol === 'admin' || sesion.rol === 'master') {
         setNotifBadge(noLeidasNotifs())
         setPendientesCount(listarUsuarios().filter(u => u.activo === false).length)
@@ -199,7 +199,7 @@ function App() {
       actualizarUltimaActividad(sesion.id)
     }
     refreshBadges()
-    const id = setInterval(refreshBadges, 15000)
+    const id = setInterval(refreshBadges, 6000)
     return () => clearInterval(id)
   }, [sesion?.id, sesion?.esMaster, buzonAbierto, notifsAbiertas])
 

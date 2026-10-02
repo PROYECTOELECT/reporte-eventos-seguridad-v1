@@ -19,7 +19,7 @@ function guardarMensajes(lista) {
   } catch (_) {}
 }
 
-export function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto }) {
+export async function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto }) {
   if (!fromId || !toId || !texto?.trim()) {
     throw new Error('Mensaje incompleto')
   }
@@ -36,7 +36,7 @@ export function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto }) {
   }
   lista.unshift(msg)
   guardarMensajes(lista)
-  supabase.from('mensajes_app').upsert({
+  const { error } = await supabase.from('mensajes_app').upsert({
     id: msg.id,
     from_id: msg.fromId,
     from_nombre: msg.fromNombre,
@@ -45,7 +45,11 @@ export function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto }) {
     texto: msg.texto,
     fecha: msg.fecha,
     leido: false
-  }).then(({ error }) => { if (error) console.warn(error.message) })
+  })
+  if (error) {
+    console.warn(error.message)
+    throw new Error('No se guardó en la nube: ' + error.message)
+  }
   return msg
 }
 
@@ -129,18 +133,36 @@ const TABLA_NOTIF = 'notifs_app'
 
 export async function sincronizarMensajesNube() {
   try {
-    const { data, error } = await supabase.from(TABLA_MSG).select('*').order('fecha', { ascending: false })
+    const { data, error } = await supabase.from(TABLA_MSG).select('*').order('fecha', { ascending: false }).limit(500)
     if (error) throw error
-    const lista = (data || []).map((r) => ({
-      id: r.id,
-      fromId: r.from_id,
-      fromNombre: r.from_nombre,
-      toId: r.to_id,
-      toNombre: r.to_nombre,
-      texto: r.texto,
+    const nube = (data || []).map((r) => ({
+      id: String(r.id),
+      fromId: String(r.from_id || ''),
+      fromNombre: r.from_nombre || '',
+      toId: String(r.to_id || ''),
+      toNombre: r.to_nombre || '',
+      texto: r.texto || '',
       fecha: r.fecha,
       leido: !!r.leido
     }))
+    const local = listarMensajes()
+    const ids = new Set(nube.map((m) => m.id))
+    const soloLocal = local.filter((m) => !ids.has(String(m.id)))
+    for (const m of soloLocal.slice(0, 30)) {
+      await supabase.from(TABLA_MSG).upsert({
+        id: String(m.id),
+        from_id: String(m.fromId),
+        from_nombre: m.fromNombre || '',
+        to_id: String(m.toId),
+        to_nombre: m.toNombre || '',
+        texto: m.texto || '',
+        fecha: m.fecha || new Date().toISOString(),
+        leido: !!m.leido
+      })
+    }
+    const lista = [...soloLocal, ...nube]
+      .filter((m, i, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === i)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
     localStorage.setItem(MSG_KEY, JSON.stringify(lista))
     window.dispatchEvent(new Event('mensajes-actualizados'))
     return lista
