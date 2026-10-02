@@ -187,7 +187,7 @@ export function aplicarTema(tema) {
 }
 
 export function aplicarIcono(src) {
-  const href = src || '/icon-192.png'
+  const href = src || '/icon-v2-192.png'
   let link = document.querySelector("link[rel='icon']")
   if (!link) {
     link = document.createElement('link')

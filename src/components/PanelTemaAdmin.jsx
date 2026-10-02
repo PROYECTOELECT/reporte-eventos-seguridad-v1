@@ -91,7 +91,7 @@ function PanelTemaAdmin() {
                 Icono por defecto
               </button>
             )}
-            <img src={tema.icono || '/icon-192.png'} alt="Icono" style={{ width: 42, height: 42, borderRadius: 10 }} />
+            <img src={tema.icono || '/icon-v2-192.png'} alt="Icono" style={{ width: 42, height: 42, borderRadius: 10 }} />
           </div>
           {error && <span className="master-error">{error}</span>}
         </div>
