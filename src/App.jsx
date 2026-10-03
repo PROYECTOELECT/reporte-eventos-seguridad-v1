@@ -1133,6 +1133,7 @@ function App() {
         sesion={sesion}
         abierto={buzonAbierto}
         onCerrar={() => setBuzonAbierto(false)}
+        esAdmin={esAdmin}
         onMensajeRespondido={() => setMsgBadge(noLeidos(sesion.id))}
       />
 
