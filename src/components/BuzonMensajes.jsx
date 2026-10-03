@@ -275,10 +275,11 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
                     )
                   })}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  <button type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '4px 10px' }} onClick={marcarRecibido}>Recibido</button>
-                  {['👍', '✅', '👀', '🙏', '⚠️', '📍'].map((emo) => (
-                    <button key={emo} type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '4px 8px' }} onClick={() => enviarTexto(emo).catch((err) => setError(err.message))}>{emo}</button>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', margin: '8px 0', padding: '8px', background: '#f8fafc', borderRadius: 10 }}>
+                  <strong style={{ fontSize: 12 }}>Responder:</strong>
+                  <button type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '6px 10px' }} onClick={marcarRecibido}>Recibido</button>
+                  {['👍', '✅', '👀', '🙏', '⚠️', '📍', '😀', '🔥'].map((emo) => (
+                    <button key={emo} type="button" className="btn btn-secondary" style={{ width: 40, padding: '6px 0', fontSize: 18 }} onClick={() => enviarTexto(emo).catch((err) => setError(err.message))}>{emo}</button>
                   ))}
                 </div>
                 <form className="buzon-enviar" onSubmit={handleEnviar}>
