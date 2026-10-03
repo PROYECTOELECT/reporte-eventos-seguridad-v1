@@ -7,7 +7,9 @@ import {
   noLeidos,
   mensajesRecibidos,
   listarMensajes,
-  sincronizarMensajesNube
+  sincronizarMensajesNube,
+  borrarMensajeParaMi,
+  borrarMensajeAdmin
 } from '../lib/mensajes'
 
 function formatFecha(iso) {
@@ -24,7 +26,7 @@ function formatFecha(iso) {
   }
 }
 
-function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensajeRespondido }) {
+function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensajeRespondido, esAdmin = false }) {
   const [usuarios, setUsuarios] = useState([])
   const [destinatarioId, setDestinatarioId] = useState('')
   const [texto, setTexto] = useState('')
@@ -85,9 +87,15 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
   }, [sesion.id, destinatarioId, tick])
 
   useEffect(() => {
-    if (listaRef.current) {
-      listaRef.current.scrollTop = listaRef.current.scrollHeight
-    }
+    if (!abierto || !destinatarioId) return
+    marcarLeidos(sesion.id, destinatarioId).then(() => {
+      setTick(t => t + 1)
+      if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+    })
+  }, [abierto, destinatarioId, sesion?.id])
+
+  useEffect(() => {
+    if (listaRef.current) listaRef.current.scrollTop = listaRef.current.scrollHeight
   }, [chat.length, destinatarioId])
 
   if (!abierto) return null
@@ -200,7 +208,7 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
     <div className="modal-overlay" onClick={onCerrar}>
       <div className="modal-contenido buzon-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>📨 Buzón de mensajes</h2>
+          <h2>📨 Buzón de mensajes · v3</h2>
           <button type="button" className="modal-cerrar" onClick={onCerrar}>×</button>
         </div>
         <div className="modal-body buzon-body">
@@ -271,6 +279,36 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
                           {formatFecha(m.fecha)} · {m.fromNombre}
                           {esPropio ? (m.leido ? ' · Leído' : ' · Enviado') : (pendiente ? ' · No leído' : ' · Leído')}
                         </small>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm('¿Borrar este mensaje solo de tu buzón?')) return
+                            await borrarMensajeParaMi(m.id, sesion.id)
+                            setTick(t => t + 1)
+                            if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+                          }}
+                          style={{ border: 0, background: 'transparent', color: '#b91c1c', fontSize: 12, cursor: 'pointer', padding: 0 }}
+                        >
+                          Borrar de mi buzón
+                        </button>
+                        {esAdmin && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm('El administrador borrará este mensaje para todos los usuarios. ¿Continuar?')) return
+                              try {
+                                await borrarMensajeAdmin(m.id)
+                                setTick(t => t + 1)
+                                if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+                              } catch (err) {
+                                setError(err.message || 'No se pudo borrar')
+                              }
+                            }}
+                            style={{ border: 0, background: 'transparent', color: '#7f1d1d', fontSize: 12, cursor: 'pointer', padding: 0, marginLeft: 8 }}
+                          >
+                            Borrar para todos
+                          </button>
+                        )}
                       </div>
                     )
                   })}
