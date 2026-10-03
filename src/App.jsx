@@ -196,11 +196,22 @@ function App() {
         setNotifBadge(noLeidasNotifs())
         setPendientesCount(listarUsuarios().filter(u => u.activo === false).length)
       }
-      actualizarUltimaActividad(sesion.id)
     }
     refreshBadges()
-    const id = setInterval(refreshBadges, 6000)
-    return () => clearInterval(id)
+    const id = setInterval(refreshBadges, 3000)
+    const onMsg = () => setMsgBadge(noLeidos(sesion.id))
+    window.addEventListener('mensajes-actualizados', onMsg)
+    const canal = supabase
+      .channel('buzon-vivo')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mensajes_app' }, () => {
+        sincronizarMensajesNube().then(() => setMsgBadge(noLeidos(sesion.id))).catch(() => {})
+      })
+      .subscribe()
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('mensajes-actualizados', onMsg)
+      supabase.removeChannel(canal)
+    }
   }, [sesion?.id, sesion?.esMaster, buzonAbierto, notifsAbiertas])
 
 
