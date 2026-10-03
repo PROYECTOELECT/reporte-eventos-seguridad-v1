@@ -62,19 +62,23 @@ export function noLeidos(userId) {
   return mensajesRecibidos(userId).filter(m => !m.leido).length
 }
 
-export function marcarLeidos(userId, fromId = null) {
+export async function marcarLeidos(userId, fromId = null) {
   const id = String(userId)
   const from = fromId != null ? String(fromId) : null
+  const marcados = []
   const lista = listarMensajes().map(m => {
     if (String(m.toId) === id && !m.leido && (!from || String(m.fromId) === from)) {
-      return { ...m, leido: true }
+      const next = { ...m, leido: true }
+      marcados.push(next)
+      return next
     }
     return m
   })
   guardarMensajes(lista)
-  lista.filter(m => String(m.toId) === id).forEach(m => {
-    supabase.from('mensajes_app').update({ leido: true }).eq('id', m.id).then(() => {})
-  })
+  await Promise.all(marcados.map((m) =>
+    supabase.from('mensajes_app').update({ leido: true }).eq('id', String(m.id))
+  ))
+  return lista
 }
 
 export function conversacion(userId, otroId) {
@@ -146,6 +150,7 @@ export async function sincronizarMensajesNube() {
       leido: !!r.leido
     }))
     const local = listarMensajes()
+    const localMap = Object.fromEntries(local.map((m) => [String(m.id), m]))
     const ids = new Set(nube.map((m) => m.id))
     const soloLocal = local.filter((m) => !ids.has(String(m.id)))
     for (const m of soloLocal.slice(0, 30)) {
@@ -160,7 +165,14 @@ export async function sincronizarMensajesNube() {
         leido: !!m.leido
       })
     }
-    const lista = [...soloLocal, ...nube]
+    const lista = [...soloLocal, ...nube.map((m) => {
+      const prev = localMap[m.id]
+      if (prev?.leido && !m.leido) {
+        supabase.from(TABLA_MSG).update({ leido: true }).eq('id', m.id)
+        return { ...m, leido: true }
+      }
+      return m
+    })
       .filter((m, i, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === i)
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
     localStorage.setItem(MSG_KEY, JSON.stringify(lista))
