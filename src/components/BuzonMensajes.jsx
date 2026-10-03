@@ -247,7 +247,7 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
                 <div className="buzon-mensajes-lista" ref={listaRef}>
                   {chat.length === 0 && <p className="empty-state">Sin mensajes aún. Escribe el primero.</p>}
                   {chat.map(m => {
-                    const esPropio = m.fromId === sesion.id
+                    const esPropio = String(m.fromId) === String(sesion.id)
                     const pendiente = !esPropio && !m.leido
                     return (
                       <div
