@@ -155,32 +155,44 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
     URL.revokeObjectURL(url)
   }
 
-  const handleEnviar = async (e) => {
-    e.preventDefault()
-    setError('')
+  const enviarTexto = async (valor) => {
+    const limpio = String(valor || '').trim()
     if (!destinatarioId) {
       setError('Selecciona un destinatario')
       return
     }
-    if (!texto.trim()) {
-      setError('Escribe un mensaje')
-      return
-    }
+    if (!limpio) return
     const dest = listarUsuarios().find(u => u.id === destinatarioId)
+    await enviarMensaje({
+      fromId: sesion.id,
+      fromNombre: sesion.nombre,
+      toId: destinatarioId,
+      toNombre: dest?.nombre || destinatario?.nombre || '',
+      texto: limpio
+    })
+    await marcarLeidos(sesion.id, destinatarioId)
+    setTexto('')
+    setTick(t => t + 1)
+    if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+  }
+
+  const handleEnviar = async (e) => {
+    e.preventDefault()
+    setError('')
     try {
-      await enviarMensaje({
-        fromId: sesion.id,
-        fromNombre: sesion.nombre,
-        toId: destinatarioId,
-        toNombre: dest?.nombre || destinatario?.nombre || '',
-        texto
-      })
-      marcarLeidos(sesion.id, destinatarioId)
-      setTexto('')
-      setTick(t => t + 1)
-      if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+      await enviarTexto(texto)
     } catch (err) {
       setError(err.message || 'No se pudo enviar')
+    }
+  }
+
+  const marcarRecibido = async () => {
+    setError('')
+    try {
+      await marcarLeidos(sesion.id, destinatarioId)
+      await enviarTexto('Recibido')
+    } catch (err) {
+      setError(err.message || 'No se pudo marcar recibido')
     }
   }
 
@@ -257,15 +269,18 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
                         <p>{m.texto}</p>
                         <small>
                           {formatFecha(m.fecha)} · {m.fromNombre}
-                          {pendiente ? ' · No leído' : ' · Leído'}
+                          {esPropio ? (m.leido ? ' · Leído' : ' · Enviado') : (pendiente ? ' · No leído' : ' · Leído')}
                         </small>
                       </div>
                     )
                   })}
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 6 }}>
-                  Al abrir el mensaje se quita la notificación. El buzón se actualiza en web y celular.
-                </p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <button type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '4px 10px' }} onClick={marcarRecibido}>Recibido</button>
+                  {['👍', '✅', '👀', '🙏', '⚠️', '📍'].map((emo) => (
+                    <button key={emo} type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '4px 8px' }} onClick={() => enviarTexto(emo).catch((err) => setError(err.message))}>{emo}</button>
+                  ))}
+                </div>
                 <form className="buzon-enviar" onSubmit={handleEnviar}>
                   <input
                     type="text"
