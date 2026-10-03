@@ -32,7 +32,8 @@ export async function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto 
     toNombre: toNombre || '',
     texto: texto.trim(),
     fecha: new Date().toISOString(),
-    leido: false
+    leido: false,
+    ocultoPara: []
   }
   lista.unshift(msg)
   guardarMensajes(lista)
@@ -55,7 +56,41 @@ export async function enviarMensaje({ fromId, fromNombre, toId, toNombre, texto 
 
 export function mensajesRecibidos(userId) {
   const id = String(userId)
-  return listarMensajes().filter(m => String(m.toId) === id)
+  return listarMensajes().filter(m => String(m.toId) === id && !estaOculto(m, id))
+}
+
+function listaOcultos(m) {
+  if (Array.isArray(m?.ocultoPara)) return m.ocultoPara.map(String)
+  if (typeof m?.ocultoPara === 'string' && m.ocultoPara) return m.ocultoPara.split(',').filter(Boolean)
+  return []
+}
+
+export function estaOculto(m, userId) {
+  return listaOcultos(m).includes(String(userId))
+}
+
+export async function borrarMensajeAdmin(msgId) {
+  const lista = listarMensajes().filter((m) => String(m.id) !== String(msgId))
+  guardarMensajes(lista)
+  const { error } = await supabase.from('mensajes_app').delete().eq('id', String(msgId))
+  if (error) throw new Error(error.message)
+  return lista
+}
+
+export async function borrarMensajeParaMi(msgId, userId) {
+  const id = String(userId)
+  const lista = listarMensajes().map((m) => {
+    if (String(m.id) !== String(msgId)) return m
+    const ocultoPara = Array.from(new Set([...listaOcultos(m), id]))
+    return { ...m, ocultoPara }
+  })
+  guardarMensajes(lista)
+  const actual = lista.find((m) => String(m.id) === String(msgId))
+  const { error } = await supabase.from('mensajes_app').update({
+    oculto_para: (actual?.ocultoPara || []).join(',')
+  }).eq('id', String(msgId))
+  if (error) console.warn('borrar mensaje:', error.message)
+  return lista
 }
 
 export function noLeidos(userId) {
@@ -90,6 +125,7 @@ export function conversacion(userId, otroId) {
       const t = String(m.toId)
       return (f === a && t === b) || (f === b && t === a)
     })
+    .filter(m => !estaOculto(m, a))
     .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
 }
 
@@ -147,7 +183,8 @@ export async function sincronizarMensajesNube() {
       toNombre: r.to_nombre || '',
       texto: r.texto || '',
       fecha: r.fecha,
-      leido: !!r.leido
+      leido: !!r.leido,
+      ocultoPara: String(r.oculto_para || '').split(',').filter(Boolean)
     }))
     const local = listarMensajes()
     const localMap = Object.fromEntries(local.map((m) => [String(m.id), m]))
@@ -169,9 +206,13 @@ export async function sincronizarMensajesNube() {
       const prev = localMap[m.id]
       if (prev?.leido && !m.leido) {
         supabase.from(TABLA_MSG).update({ leido: true }).eq('id', m.id)
-        return { ...m, leido: true }
+        m = { ...m, leido: true }
       }
-      return m
+      const ocultoPara = Array.from(new Set([...listaOcultos(m), ...listaOcultos(prev || {})]))
+      if (ocultoPara.join(',') !== listaOcultos(m).join(',')) {
+        supabase.from(TABLA_MSG).update({ oculto_para: ocultoPara.join(',') }).eq('id', m.id)
+      }
+      return { ...m, ocultoPara }
     })
       .filter((m, i, arr) => arr.findIndex((x) => String(x.id) === String(m.id)) === i)
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
