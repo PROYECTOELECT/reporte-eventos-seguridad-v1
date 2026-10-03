@@ -200,13 +200,18 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
               </p>
             )}
             {usuarios.map(u => {
-              const unread = mensajesRecibidos(sesion.id).filter(m => m.fromId === u.id && !m.leido).length
+              const unread = mensajesRecibidos(sesion.id).filter(m => String(m.fromId) === String(u.id) && !m.leido).length
               return (
                 <button
                   key={u.id}
                   type="button"
-                  className={`buzon-user ${destinatarioId === u.id ? 'activo' : ''}`}
-                  onClick={() => setDestinatarioId(u.id)}
+                  className={`buzon-user ${String(destinatarioId) === String(u.id) ? 'activo' : ''}`}
+                  onClick={async () => {
+                    setDestinatarioId(u.id)
+                    await marcarLeidos(sesion.id, u.id)
+                    setTick(t => t + 1)
+                    if (typeof onMensajeRespondido === 'function') onMensajeRespondido()
+                  }}
                 >
                   <img src={u.foto} alt="" className="usuario-foto" style={{ width: 36, height: 36 }} />
                   <span>
@@ -252,14 +257,14 @@ function BuzonMensajes({ sesion, abierto, onCerrar, destinatarioInicial, onMensa
                         <p>{m.texto}</p>
                         <small>
                           {formatFecha(m.fecha)} · {m.fromNombre}
-                          {pendiente ? ' · Pendiente de responder' : ''}
+                          {pendiente ? ' · No leído' : ' · Leído'}
                         </small>
                       </div>
                     )
                   })}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 6 }}>
-                  Para quitar la notificación roja, responde el mensaje (ej. &quot;recibido&quot;).
+                  Al abrir el mensaje se quita la notificación. El buzón se actualiza en web y celular.
                 </p>
                 <form className="buzon-enviar" onSubmit={handleEnviar}>
                   <input
